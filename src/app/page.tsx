@@ -9,20 +9,35 @@ interface Task {
   id: string;
   title: string;
   completed: boolean;
+  color?: string;
 }
 
 // Modal for creating new tasks
 function CreateTaskModal({ isOpen, onClose, onAdd }: { 
   isOpen: boolean; 
   onClose: () => void; 
-  onAdd: (title: string) => void 
+  onAdd: (title: string, color: string) => void 
 }) {
   const [title, setTitle] = useState("");
+  const [selectedColor, setSelectedColor] = useState("orange");
+
+  const colors = [
+    { name: "red", hex: "#ef4444" },
+    { name: "orange", hex: "#f97316" },
+    { name: "yellow", hex: "#eab308" },
+    { name: "green", hex: "#22c55e" },
+    { name: "lightBlue", hex: "#06b6d4" },
+    { name: "darkBlue", hex: "#3b82f6" },
+    { name: "purple", hex: "#8b5cf6" },
+    { name: "pink", hex: "#ec4899" },
+    { name: "brown", hex: "#a16207" }
+  ];
 
   const handleSubmit = () => {
     if (title.trim()) {
-      onAdd(title.trim());
+      onAdd(title.trim(), selectedColor);
       setTitle("");
+      setSelectedColor("orange");
       onClose();
     }
   };
@@ -31,32 +46,64 @@ function CreateTaskModal({ isOpen, onClose, onAdd }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white dark:bg-[#23232b] rounded-lg shadow-lg p-6 w-11/12 max-w-md mx-auto flex flex-col gap-4">
-        <h2 className="text-xl font-bold mb-2 text-center">Create Task</h2>
-        <input
-          className="border rounded px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-400"
-          placeholder="Task title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
-          autoFocus
-        />
-        <div className="flex gap-2 mt-2">
-          <Button 
-            type="button" 
-            className="flex-1" 
-            onClick={handleSubmit}
-          >
-            Add
-          </Button>
-          <Button 
-            type="button" 
-            className="flex-1 bg-gray-300 hover:bg-gray-400 text-black" 
+      <div className="bg-[#18181b] rounded-lg shadow-lg p-6 w-11/12 max-w-md mx-auto flex flex-col gap-6">
+        {/* Header with back button */}
+        <div className="flex items-center gap-4">
+          <button 
             onClick={onClose}
+            className="text-gray-400 hover:text-white text-2xl"
           >
-            Cancel
-          </Button>
+            ←
+          </button>
+          <h2 className="text-xl font-bold text-white">Add New Task</h2>
         </div>
+
+        {/* Title Input */}
+        <div className="space-y-2">
+          <label className="text-cyan-400 text-sm font-medium">Title</label>
+          <input
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+            placeholder="Ex. Brush your teeth"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
+            autoFocus
+          />
+        </div>
+
+        {/* Color Selection */}
+        <div className="space-y-2">
+          <label className="text-cyan-400 text-sm font-medium">Color</label>
+          <div className="flex gap-3 flex-wrap">
+            {colors.map((color) => (
+              <button
+                key={color.name}
+                onClick={() => setSelectedColor(color.name)}
+                className={`w-10 h-10 rounded-full border-2 transition-all ${
+                  selectedColor === color.name 
+                    ? 'border-purple-500 shadow-lg scale-110' 
+                    : 'border-gray-600 hover:border-gray-400'
+                }`}
+                style={{ backgroundColor: color.hex }}
+              >
+                {selectedColor === color.name && (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <span className="text-white font-bold text-sm">D</span>
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Add Task Button */}
+        <button
+          onClick={handleSubmit}
+          className="w-full bg-teal-600 hover:bg-teal-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+        >
+          Add Task
+          <span className="text-white">?</span>
+        </button>
       </div>
     </div>
   );
@@ -131,13 +178,14 @@ export default function TodoApp() {
   };
 
   // Task operations
-  const addTask = async (title: string) => {
+  const addTask = async (title: string, color: string = "orange") => {
     try {
       const newTodo = await todoApi.createTodo({ title });
       const newTask = { 
         id: newTodo.id, 
         title: newTodo.title, 
-        completed: newTodo.completed 
+        completed: newTodo.completed,
+        color: color
       };
       setTasks([...tasks, newTask]);
     } catch (err) {
@@ -199,9 +247,13 @@ export default function TodoApp() {
       {/* Main Content */}
       <main className="max-w-2xl mx-auto w-full flex flex-col items-center gap-6 sm:gap-8">
         {/* Controls */}
-        <Button type="button" onClick={() => setShowCreateModal(true)} className="w-full sm:w-auto mb-2">
+        <button 
+          type="button" 
+          onClick={() => setShowCreateModal(true)} 
+          className="w-full sm:w-auto mb-2 bg-teal-600 hover:bg-teal-700 text-white font-medium py-3 px-6 rounded-lg transition-colors"
+        >
           Create Task
-        </Button>
+        </button>
         
         {/* Statistics */}
         <div className="flex flex-col sm:flex-row justify-center items-center gap-6 sm:gap-60 text-lg font-semibold text-blue-600 underline underline-offset-4 text-center mb-2 w-full">
@@ -236,30 +288,50 @@ export default function TodoApp() {
               You Don't Have Any Task Registered Yet.
             </div>
           ) : (
-            tasks.map(task => (
-              <div
-                key={task.id}
-                className="flex flex-col sm:flex-row sm:items-center justify-between bg-white dark:bg-[#23232b] rounded-lg shadow p-4 cursor-pointer hover:ring-2 hover:ring-blue-400 transition w-full"
-              >
-                <div className="flex items-center gap-3 flex-1 mb-2 sm:mb-0">
-                  <input
-                    type="checkbox"
-                    checked={task.completed}
-                    onChange={() => toggleTask(task.id)}
-                    className="w-5 h-5 accent-blue-600 cursor-pointer"
-                  />
-                  <span className={`text-lg ${task.completed ? "line-through text-gray-400" : "text-gray-800 dark:text-gray-100"}`}>
-                    {task.title}
-                  </span>
-                </div>
-                <button
-                  className="ml-0 sm:ml-4 px-3 py-1 rounded-full text-xs font-bold border border-red-400 bg-red-100 text-red-700 hover:bg-red-200 transition w-full sm:w-auto"
-                  onClick={() => handleDeleteClick(task.id)}
+            tasks.map(task => {
+              const colorMap = {
+                red: "#ef4444",
+                orange: "#f97316", 
+                yellow: "#eab308",
+                green: "#22c55e",
+                lightBlue: "#06b6d4",
+                darkBlue: "#3b82f6",
+                purple: "#8b5cf6",
+                pink: "#ec4899",
+                brown: "#a16207"
+              };
+              
+              const taskColor = colorMap[task.color as keyof typeof colorMap] || "#f97316";
+              
+              return (
+                <div
+                  key={task.id}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between bg-gray-800 border border-gray-700 rounded-lg p-4 cursor-pointer hover:border-gray-600 transition w-full"
                 >
-                  Delete
-                </button>
-              </div>
-            ))
+                  <div className="flex items-center gap-3 flex-1 mb-2 sm:mb-0">
+                    <div 
+                      className="w-4 h-4 rounded-full border-2 border-gray-600"
+                      style={{ backgroundColor: taskColor }}
+                    ></div>
+                    <input
+                      type="checkbox"
+                      checked={task.completed}
+                      onChange={() => toggleTask(task.id)}
+                      className="w-5 h-5 accent-teal-600 cursor-pointer"
+                    />
+                    <span className={`text-lg ${task.completed ? "line-through text-gray-500" : "text-gray-100"}`}>
+                      {task.title}
+                    </span>
+                  </div>
+                  <button
+                    className="ml-0 sm:ml-4 px-3 py-1 rounded-full text-xs font-bold border border-red-500 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition w-full sm:w-auto"
+                    onClick={() => handleDeleteClick(task.id)}
+                  >
+                    Delete
+                  </button>
+                </div>
+              );
+            })
           )}
         </div>
       </main>
