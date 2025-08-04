@@ -20,6 +20,7 @@ function CreateTaskModal({ isOpen, onClose, onAdd }: {
 }) {
   const [title, setTitle] = useState("");
   const [selectedColor, setSelectedColor] = useState("orange");
+  const [savedColor, setSavedColor] = useState<string | null>(null);
 
   const colors = [
     { name: "red", hex: "#ef4444" },
@@ -33,11 +34,16 @@ function CreateTaskModal({ isOpen, onClose, onAdd }: {
     { name: "brown", hex: "#a16207" }
   ];
 
+  const handleSaveColor = () => {
+    setSavedColor(selectedColor);
+  };
+
   const handleSubmit = () => {
-    if (title.trim()) {
-      onAdd(title.trim(), selectedColor);
+    if (title.trim() && savedColor) {
+      onAdd(title.trim(), savedColor);
       setTitle("");
       setSelectedColor("orange");
+      setSavedColor(null);
       onClose();
     }
   };
@@ -94,12 +100,36 @@ function CreateTaskModal({ isOpen, onClose, onAdd }: {
               </button>
             ))}
           </div>
+          
+          {/* Save Color Button */}
+          <button
+            onClick={handleSaveColor}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors mt-3"
+          >
+            Save Color
+          </button>
+          
+          {/* Saved Color Status */}
+          {savedColor && (
+            <div className="flex items-center gap-2 mt-2 p-2 bg-green-900/20 border border-green-500/30 rounded-lg">
+              <div 
+                className="w-4 h-4 rounded-full"
+                style={{ backgroundColor: colors.find(c => c.name === savedColor)?.hex }}
+              ></div>
+              <span className="text-green-400 text-sm">Color saved: {savedColor}</span>
+            </div>
+          )}
         </div>
 
         {/* Add Task Button */}
         <button
           onClick={handleSubmit}
-          className="w-full bg-teal-600 hover:bg-teal-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+          disabled={!savedColor}
+          className={`w-full font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 ${
+            savedColor 
+              ? 'bg-teal-600 hover:bg-teal-700 text-white' 
+              : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+          }`}
         >
           Add Task
           <span className="text-white">?</span>
@@ -166,7 +196,8 @@ export default function TodoApp() {
       setTasks(todos.map(todo => ({
         id: todo.id,
         title: todo.title,
-        completed: todo.completed
+        completed: todo.completed,
+        color: todo.color || 'orange'
       })));
       setError(null);
     } catch (err) {
@@ -180,12 +211,12 @@ export default function TodoApp() {
   // Task operations
   const addTask = async (title: string, color: string = "orange") => {
     try {
-      const newTodo = await todoApi.createTodo({ title });
+      const newTodo = await todoApi.createTodo({ title, color });
       const newTask = { 
         id: newTodo.id, 
         title: newTodo.title, 
         completed: newTodo.completed,
-        color: color
+        color: newTodo.color
       };
       setTasks([...tasks, newTask]);
     } catch (err) {
